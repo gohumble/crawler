@@ -105,7 +105,9 @@ func (cr *Crawler) Crawl(collection *mongo.Collection) {
 	cr.collector.Wait()
 	cr.done = true
 	cr.end = time.Now()
-	fmt.Printf("finished! visited %d pages\n", cr.visited)
+
+	fmt.Printf("finished crawler for %s!\n", cr.seed)
+	fmt.Printf("runtime %s!\n", cr.end.Sub(cr.start).String())
 	time.Sleep(time.Second * 5)
 }
 
