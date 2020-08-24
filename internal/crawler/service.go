@@ -130,7 +130,7 @@ func (s *crawlerService) ProxyCall(w http.ResponseWriter, r *http.Request, seed 
 }
 
 func (s *crawlerService) connectDatabase() {
-	con := fmt.Sprintf("mongodb://%s:%s@%s:%s/", Configuration.Username, Configuration.Password, Configuration.Host, Configuration.Port)
+	con := fmt.Sprintf("mongodb://%s:%s@%s:%s", Configuration.Username, Configuration.Password, Configuration.Host, Configuration.Port)
 	client, err := mongo.NewClient(options.Client().ApplyURI(con))
 	if err != nil {
 		panic(err)
