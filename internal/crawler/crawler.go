@@ -72,11 +72,12 @@ func (cr *Crawler) Crawl() {
 
 	cr.collector.OnHTML("a[href]", cr.onHTMLCallback)
 	cr.collector.OnRequest(func(r *colly.Request) {
-		c := connectDatabase()
-		defer c.Disconnect(context.TODO())
+		ctx, _ := context.WithTimeout(context.Background(), 100*time.Second)
+		c := connectDatabase(ctx)
+		defer c.Disconnect(ctx)
 		url := r.URL.String()
 		filter := bson.M{"url": url}
-		d := c.Database("testing").Collection("page_view").FindOne(context.TODO(), filter, options.FindOne().SetSort(bson.M{"_id": -1}))
+		d := c.Database("testing").Collection("page_view").FindOne(ctx, filter, options.FindOne().SetSort(bson.M{"_id": -1}))
 		pageview := &PageView{}
 		err := d.Decode(pageview)
 		if err != nil {
@@ -88,13 +89,14 @@ func (cr *Crawler) Crawl() {
 		}
 	})
 	cr.collector.OnResponse(func(r *colly.Response) {
-		c := connectDatabase()
-		defer c.Disconnect(context.TODO())
-		ctx, _ := context.WithTimeout(context.Background(), 10*time.Second)
+		ctx, _ := context.WithTimeout(context.Background(), 100*time.Second)
+
+		c := connectDatabase(ctx)
+		defer c.Disconnect(ctx)
 		pv := PageView{Timestamp: primitive.Timestamp{T: uint32(time.Now().Unix())}, Url: r.Request.URL.String(), Data: r.Body, Seed: cr.seed}
 		_, err := c.Database("testing").Collection("page_view").InsertOne(ctx, pv)
 		if err != nil {
-			fmt.Println("could not insert \n" + err.Error())
+			fmt.Printf("could not insert from %s \n %s", cr.seed, err.Error())
 			return
 		}
 		fmt.Printf("inserted %s found from %s\n", pv.Url, pv.Seed)

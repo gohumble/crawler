@@ -129,7 +129,7 @@ func (s *crawlerService) ProxyCall(w http.ResponseWriter, r *http.Request, seed 
 	}
 }
 
-func connectDatabase() *mongo.Client {
+func connectDatabase(ctx context.Context) *mongo.Client {
 	con := fmt.Sprintf("mongodb://%s:%s@%s:%s", Configuration.Username, Configuration.Password, Configuration.Host, Configuration.Port)
 	client, err := mongo.NewClient(options.Client().ApplyURI(con),
 		options.Client().SetConnectTimeout(time.Second*30),
@@ -138,6 +138,6 @@ func connectDatabase() *mongo.Client {
 	if err != nil {
 		panic(err)
 	}
-	err = client.Connect(context.TODO())
+	err = client.Connect(ctx)
 	return client
 }
