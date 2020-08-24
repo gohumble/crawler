@@ -90,7 +90,7 @@ func (cr *Crawler) Crawl(collection *mongo.Collection) {
 		pv := PageView{Timestamp: primitive.Timestamp{T: uint32(time.Now().Unix())}, Url: r.Request.URL.String(), Data: r.Body, Seed: cr.seed}
 		_, err := collection.InsertOne(ctx, pv)
 		if err != nil {
-			fmt.Println(err.Error())
+			fmt.Println("could not insert \n" + err.Error())
 			return
 		}
 		fmt.Printf("inserted %s found from %s\n", pv.Url, pv.Seed)
