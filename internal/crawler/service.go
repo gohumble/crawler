@@ -29,7 +29,6 @@ type crawlerService struct {
 
 func NewService() *crawlerService {
 	service := &crawlerService{Crawler: make([]Crawler, 0), TTLMap: NewMap(0, 60)}
-	service.connectDatabase()
 	service.resultChannel = make(chan Result, 100)
 	service.Urls = make(map[string]func(w http.ResponseWriter, r *http.Request), 0)
 	service.Dispatcher = mux.NewRouter()
@@ -130,7 +129,7 @@ func (s *crawlerService) ProxyCall(w http.ResponseWriter, r *http.Request, seed 
 	}
 }
 
-func (s *crawlerService) connectDatabase() {
+func connectDatabase() *mongo.Client {
 	con := fmt.Sprintf("mongodb://%s:%s@%s:%s", Configuration.Username, Configuration.Password, Configuration.Host, Configuration.Port)
 	client, err := mongo.NewClient(options.Client().ApplyURI(con),
 		options.Client().SetConnectTimeout(time.Second*30),
@@ -140,31 +139,5 @@ func (s *crawlerService) connectDatabase() {
 		panic(err)
 	}
 	err = client.Connect(context.TODO())
-	s.GetCollection = client.Database("testing").Collection
-	s.Collection = client.Database("testing").Collection("page_view")
-	/*ctx, _ = context.WithTimeout(context.Background(), 30*time.Second)
-	cur, err := collection.Find(ctx, bson.D{})
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer cur.Close(ctx)
-
-	for cur.Next(ctx) {
-		var result bson.M
-		err := cur.Decode(&result)
-		if err != nil {
-			log.Fatal(err)
-		}
-		fmt.Println(result)
-	}
-	if err := cur.Err(); err != nil {
-		log.Fatal(err)
-	}*/
-	/* INSERT
-	collection := client.Database("testing").Collection("numbers")
-	res, err := collection.InsertOne(ctx, bson.M{"name": "pi", "value": 3.14159})
-	id := res.InsertedID
-	fmt.Println(id)
-	*&
-	*/
+	return client
 }

@@ -38,7 +38,7 @@ func main() {
 					cr.Proto = "https://"
 				}
 				cr.Seed(URL)
-				go cr.Crawl(s.Collection)
+				go cr.Crawl()
 				s.Crawler = append(s.Crawler, cr)
 				time.Sleep(time.Second * 3)
 			case err := <-errch:

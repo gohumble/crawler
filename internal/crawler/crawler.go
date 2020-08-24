@@ -8,7 +8,6 @@ import (
 	"github.com/orcaman/concurrent-map"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
-	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"sync"
 	"time"
@@ -68,13 +67,15 @@ func New() Crawler {
 
 const RFC3339Millis = "2006-01-02T15:04:05.000Z07:00"
 
-func (cr *Crawler) Crawl(collection *mongo.Collection) {
+func (cr *Crawler) Crawl() {
 	// Do this on every found link
+	c := connectDatabase()
+
 	cr.collector.OnHTML("a[href]", cr.onHTMLCallback)
 	cr.collector.OnRequest(func(r *colly.Request) {
 		url := r.URL.String()
 		filter := bson.M{"url": url}
-		d := collection.FindOne(context.TODO(), filter, options.FindOne().SetSort(bson.M{"_id": -1}))
+		d := c.Database("testing").Collection("page_view").FindOne(context.TODO(), filter, options.FindOne().SetSort(bson.M{"_id": -1}))
 		pageview := &PageView{}
 		err := d.Decode(pageview)
 		if err != nil {
@@ -88,7 +89,7 @@ func (cr *Crawler) Crawl(collection *mongo.Collection) {
 	cr.collector.OnResponse(func(r *colly.Response) {
 		ctx, _ := context.WithTimeout(context.Background(), 10*time.Second)
 		pv := PageView{Timestamp: primitive.Timestamp{T: uint32(time.Now().Unix())}, Url: r.Request.URL.String(), Data: r.Body, Seed: cr.seed}
-		_, err := collection.InsertOne(ctx, pv)
+		_, err := c.Database("testing").Collection("page_view").InsertOne(ctx, pv)
 		if err != nil {
 			fmt.Println("could not insert \n" + err.Error())
 			return
@@ -103,6 +104,7 @@ func (cr *Crawler) Crawl(collection *mongo.Collection) {
 		return
 	}
 	cr.collector.Wait()
+	c.Disconnect(context.TODO())
 	cr.done = true
 	cr.end = time.Now()
 
