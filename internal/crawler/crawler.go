@@ -107,7 +107,6 @@ func (cr *Crawler) Crawl() {
 		return
 	}
 	cr.collector.Wait()
-	c.Disconnect(context.TODO())
 	cr.done = true
 	cr.end = time.Now()
 
