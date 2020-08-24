@@ -21,6 +21,7 @@ type crawlerService struct {
 	Urls          map[string]func(w http.ResponseWriter, r *http.Request)
 	Crawler       []Crawler
 	GetCollection func(name string, opts ...*options.CollectionOptions) *mongo.Collection
+	Collection    *mongo.Collection
 	storage       cmongo.Storage
 }
 
@@ -137,6 +138,7 @@ func (s *crawlerService) connectDatabase() {
 	}
 	err = client.Connect(context.TODO())
 	s.GetCollection = client.Database("testing").Collection
+	s.Collection = client.Database("testing").Collection("page_view")
 	/*ctx, _ = context.WithTimeout(context.Background(), 30*time.Second)
 	cur, err := collection.Find(ctx, bson.D{})
 	if err != nil {

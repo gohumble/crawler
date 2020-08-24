@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"strings"
 	"time"
-
 )
 
 func main() {
@@ -39,7 +38,7 @@ func main() {
 					cr.Proto = "https://"
 				}
 				cr.Seed(URL)
-				go cr.Crawl(s.GetCollection("page_view"))
+				go cr.Crawl(s.Collection)
 				s.Crawler = append(s.Crawler, cr)
 				time.Sleep(time.Second * 3)
 			case err := <-errch:
