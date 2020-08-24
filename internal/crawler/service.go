@@ -2,19 +2,14 @@ package crawler
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
-	rdap2 "github.com/gohumble/crawler/internal/rdap"
-	"github.com/gohumble/crawler/internal/whois"
 	"github.com/gorilla/mux"
 	cmongo "github.com/zolamk/colly-mongo-storage/colly/mongo"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
-	"log"
 	"net/http"
-	"strconv"
 	"strings"
 	"time"
 )
@@ -88,42 +83,6 @@ func (s crawlerService) hasResult(url string) bool {
 	return false
 }
 
-func (s *crawlerService) RdapHandler(w http.ResponseWriter, r *http.Request) {
-	limit := r.URL.Query().Get("limit")
-	offset := r.URL.Query().Get("offset")
-
-	res := make([]rdap2.Result, 0)
-	filter := bson.D{}
-	if domain := r.URL.Query().Get("domain"); domain != "" {
-		filter = bson.D{{"domain", r.URL.Query().Get("domain")}}
-	}
-	//optio := options.Find().SetLimit(10)
-	limitInt, err := strconv.ParseInt(limit, 10, 64)
-	limitOption := options.Find().SetLimit(limitInt)
-	offsetInt, err := strconv.ParseInt(offset, 10, 64)
-	offsetOption := options.Find().SetSkip(offsetInt)
-	sort := make(map[string]interface{}, 0)
-	sort["timestamp"] = -1
-	sortOtion := options.Find().SetSort(sort)
-
-	c, err := s.GetCollection("rdap").Find(context.TODO(), filter, limitOption, offsetOption, sortOtion)
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-	err = c.All(context.TODO(), &res)
-
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-	w.Header().Add("Content-Type", "application/json")
-	w.Header().Add("Access-Control-Allow-Origin", "*")
-	resj, _ := json.Marshal(res)
-	w.WriteHeader(200)
-	w.Write(resj)
-}
-
 type PageView struct {
 	Id        primitive.ObjectID  `bson:"_id,omitempty" json:"_id"`
 	Data      []byte              `bson:"data" json:"data"`
@@ -154,71 +113,6 @@ func (s *crawlerService) PageHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (s *crawlerService) WhoisHandler(w http.ResponseWriter, r *http.Request) {
-	limit := r.URL.Query().Get("limit")
-	offset := r.URL.Query().Get("offset")
-
-	res := make([]whois.Result, 0)
-	filter := bson.D{}
-	if domain := r.URL.Query().Get("domain"); domain != "" {
-		filter = bson.D{{"domain", r.URL.Query().Get("domain")}}
-	}
-	//optio := options.Find().SetLimit(10)
-	limitInt, err := strconv.ParseInt(limit, 10, 64)
-	limitOption := options.Find().SetLimit(limitInt)
-	offsetInt, err := strconv.ParseInt(offset, 10, 64)
-	offsetOption := options.Find().SetSkip(offsetInt)
-	sort := make(map[string]interface{}, 0)
-	sort["timestamp"] = -1
-	sortOption := options.Find().SetSort(sort)
-
-	c, err := s.GetCollection("whois").Find(context.TODO(), filter, limitOption, offsetOption, sortOption)
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-	err = c.All(context.TODO(), &res)
-
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-	w.Header().Add("Content-Type", "application/json")
-	w.Header().Add("Access-Control-Allow-Origin", "*")
-	resj, _ := json.Marshal(res)
-	w.WriteHeader(200)
-	w.Write(resj)
-}
-
-func (s *crawlerService) CrawlerHandler(w http.ResponseWriter, r *http.Request) {
-	p := r.URL.Query().Get("url")
-	URL := p
-	log.Printf("start crawler for %s", URL)
-	cr := New()
-	if URL == "" {
-		w.Write([]byte("missing URL argument"))
-		log.Println("missing URL argument")
-		return
-	}
-	if !strings.HasPrefix(URL, "http://") && !strings.HasPrefix(URL, "https://") {
-		URL = "http://" + URL
-	}
-	if strings.HasPrefix(URL, "http://") {
-		URL = strings.Replace(URL, "http://", "", 1)
-		cr.Proto = "http://"
-	} else if strings.HasPrefix(URL, "https://") {
-		URL = strings.Replace(URL, "https://", "", 1)
-		cr.Proto = "https://"
-	}
-	cr.seed = URL
-
-	go cr.Crawl(s.GetCollection("page_view"))
-	s.Crawler = append(s.Crawler, cr)
-	//s.AddFunction(cr.Handler, p)
-	w.Header().Add("Content-Type", "application/json")
-	w.Write([]byte(fmt.Sprintf("started crawling.\nseed -> %s", cr.seed)))
-}
-
 func (s *crawlerService) AddFunction(handler func(w http.ResponseWriter, r *http.Request), seed string) {
 	s.Urls[seed] = handler // Add the handler to our map
 }
@@ -236,7 +130,8 @@ func (s *crawlerService) ProxyCall(w http.ResponseWriter, r *http.Request, seed 
 }
 
 func (s *crawlerService) connectDatabase() {
-	client, err := mongo.NewClient(options.Client().ApplyURI("mongodb://localhost:27017/"))
+	con := fmt.Sprintf("mongodb://%s:%s@%s:%s/", Configuration.Username, Configuration.Password, Configuration.Host, Configuration.Port)
+	client, err := mongo.NewClient(options.Client().ApplyURI(con))
 	if err != nil {
 		panic(err)
 	}

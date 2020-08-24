@@ -13,9 +13,10 @@ require (
 	github.com/gorilla/websocket v1.4.2 // indirect
 	github.com/jmoiron/jsonq v0.0.0-20150511023944-e874b168d07e // indirect
 	github.com/mitchellh/go-homedir v1.1.0 // indirect
-	github.com/openrdap/rdap v0.9.0
+	github.com/openrdap/rdap v0.9.0 // indirect
 	github.com/orcaman/concurrent-map v0.0.0-20190826125027-8c72a8bb44f6
 	github.com/zolamk/colly-mongo-storage v0.0.0-20190324054405-abf7ea547b23
 	go.mongodb.org/mongo-driver v1.3.3
 	gopkg.in/alecthomas/kingpin.v2 v2.2.6 // indirect
+	gopkg.in/yaml.v2 v2.3.0
 )
