@@ -132,7 +132,7 @@ func (s *crawlerService) ProxyCall(w http.ResponseWriter, r *http.Request, seed 
 
 func (s *crawlerService) connectDatabase() {
 	con := fmt.Sprintf("mongodb://%s:%s@%s:%s", Configuration.Username, Configuration.Password, Configuration.Host, Configuration.Port)
-	client, err := mongo.NewClient(options.Client().ApplyURI(con))
+	client, err := mongo.NewClient(options.Client().ApplyURI(con), options.Client().SetConnectTimeout(time.Second*30), options.Client().SetMaxConnIdleTime(time.Second*30))
 	if err != nil {
 		panic(err)
 	}
