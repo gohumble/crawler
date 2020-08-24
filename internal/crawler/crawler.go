@@ -69,10 +69,11 @@ const RFC3339Millis = "2006-01-02T15:04:05.000Z07:00"
 
 func (cr *Crawler) Crawl() {
 	// Do this on every found link
-	c := connectDatabase()
 
 	cr.collector.OnHTML("a[href]", cr.onHTMLCallback)
 	cr.collector.OnRequest(func(r *colly.Request) {
+		c := connectDatabase()
+		defer c.Disconnect(context.TODO())
 		url := r.URL.String()
 		filter := bson.M{"url": url}
 		d := c.Database("testing").Collection("page_view").FindOne(context.TODO(), filter, options.FindOne().SetSort(bson.M{"_id": -1}))
@@ -87,6 +88,8 @@ func (cr *Crawler) Crawl() {
 		}
 	})
 	cr.collector.OnResponse(func(r *colly.Response) {
+		c := connectDatabase()
+		defer c.Disconnect(context.TODO())
 		ctx, _ := context.WithTimeout(context.Background(), 10*time.Second)
 		pv := PageView{Timestamp: primitive.Timestamp{T: uint32(time.Now().Unix())}, Url: r.Request.URL.String(), Data: r.Body, Seed: cr.seed}
 		_, err := c.Database("testing").Collection("page_view").InsertOne(ctx, pv)
