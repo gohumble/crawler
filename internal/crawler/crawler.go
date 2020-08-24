@@ -93,7 +93,7 @@ func (cr *Crawler) Crawl(collection *mongo.Collection) {
 			fmt.Println(err.Error())
 			return
 		}
-		fmt.Printf("inserted %s \n", pv.Url)
+		fmt.Printf("inserted %s found from %s\n", pv.Url, pv.Seed)
 	})
 	cr.visited = 0
 	err := cr.Visit(cr.Proto + cr.seed)
