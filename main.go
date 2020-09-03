@@ -1,18 +1,14 @@
 package main
 
 import (
-	"fmt"
-	"github.com/CaliDog/certstream-go"
 	"github.com/gohumble/crawler/internal/crawler"
 	"net/http"
-	"strings"
-	"time"
 )
 
 func main() {
 
 	s := crawler.NewService()
-	stream, errch := certstream.CertStreamEventStream(true)
+	/*stream, errch := certstream.CertStreamEventStream(true)
 	go func() {
 		for {
 			select {
@@ -46,6 +42,6 @@ func main() {
 
 			}
 		}
-	}()
+	}()*/
 	http.ListenAndServe(":8080", s.Dispatcher)
 }

@@ -10,8 +10,6 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"net/http"
-	"strings"
-	"time"
 )
 
 type crawlerService struct {
@@ -43,25 +41,6 @@ func remove(s []Crawler, i int) []Crawler {
 	return s[:len(s)-1]
 }
 
-func (s *crawlerService) worker(c Crawler) {
-	var numWorker = 2
-	for i := 0; i <= numWorker; i++ {
-		fmt.Printf("result worker %d started\n", i)
-		go func(i int) {
-			for {
-				res := <-s.resultChannel
-
-				ctx, _ := context.WithTimeout(context.Background(), 10*time.Second)
-				pv := PageView{Timestamp: primitive.Timestamp{T: uint32(time.Now().Unix())}, Url: res.referer, Data: res.HTML, Seed: c.seed}
-				_, err := s.GetCollection("page_view").InsertOne(ctx, pv)
-				if err != nil {
-					panic(err)
-				}
-			}
-		}(i)
-	}
-
-}
 func (s *crawlerService) observer() {
 	for {
 		for i, c := range s.Crawler {
@@ -93,9 +72,9 @@ type PageView struct {
 }
 
 func (s *crawlerService) PageHandler(w http.ResponseWriter, r *http.Request) {
-
+	dbc := connectDatabase(context.TODO())
 	url := r.URL.Query().Get("url")
-	c := s.GetCollection("page_view").FindOne(context.TODO(), bson.M{"url": url})
+	c := dbc.Database("qmap").Collection("page_view").FindOne(context.TODO(), bson.M{"url": url})
 	res := PageView{}
 	c.Decode(&res)
 	if res.Url == "" {
@@ -105,9 +84,8 @@ func (s *crawlerService) PageHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	w.WriteHeader(200)
 	if len(res.Data) > 0 {
-		s := string(res.Data)
-		s = strings.Replace(s, `<a href="`, `<a href="http://localhost:8080/?url=`+url, -1)
-		w.Write([]byte(s))
+
+		w.Write(res.Data)
 	} else {
 		w.Write([]byte("NO DATA"))
 	}
@@ -130,7 +108,12 @@ func (s *crawlerService) ProxyCall(w http.ResponseWriter, r *http.Request, seed 
 }
 
 func connectDatabase(ctx context.Context) *mongo.Client {
-	con := fmt.Sprintf("mongodb://%s:%s@%s:%s", Configuration.Username, Configuration.Password, Configuration.Host, Configuration.Port)
+	var con string
+	if Configuration.Username != "" && Configuration.Password != "" {
+		con = fmt.Sprintf("mongodb://%s:%s@%s:%s", Configuration.Username, Configuration.Password, Configuration.Host, Configuration.Port)
+	} else {
+		con = fmt.Sprintf("mongodb://%s:%s", Configuration.Host, Configuration.Port)
+	}
 	client, err := mongo.NewClient(options.Client().ApplyURI(con),
 		options.Client().SetConnectTimeout(0),
 		options.Client().SetMaxConnIdleTime(0),
